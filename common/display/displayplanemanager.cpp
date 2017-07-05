@@ -156,7 +156,8 @@ bool DisplayPlaneManager::ValidateLayers(std::vector<OverlayLayer> &layers,
                                cursor_layer->GetZorder());
       // Lets ensure we fall back to GPU composition in case
       // cursor layer cannot be scanned out directly.
-      if (FallbacktoGPU(cursor_plane, cursor_layer, commit_planes)) {
+      bool force = true;
+      if (force || FallbacktoGPU(cursor_plane, cursor_layer, commit_planes)) {
         render_layers = true;
         DisplayPlaneState &last_plane = composition.back();
         SetOffScreenCursorPlaneTarget(last_plane,
