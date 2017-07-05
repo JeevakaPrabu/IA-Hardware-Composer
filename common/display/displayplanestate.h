@@ -160,6 +160,14 @@ class DisplayPlaneState {
     return clear_surface_;
   }
 
+  void SetCursorPlane() {
+    cursor_plane_ = true;
+  }
+
+  bool IsCursorPlane() const {
+    return cursor_plane_;
+  }
+
  private:
   State state_ = State::kScanout;
   DisplayPlane *plane_ = NULL;
@@ -169,6 +177,7 @@ class DisplayPlaneState {
   std::vector<CompositionRegion> composition_region_;
   bool recycled_surface_ = false;
   bool clear_surface_ = true;
+  bool cursor_plane_ = false;
   std::vector<NativeSurface *> surfaces_;
 };
 

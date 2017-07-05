@@ -88,28 +88,13 @@ bool DisplayPlaneManager::ValidateLayers(std::vector<OverlayLayer> &layers,
   }
 
   // Retrieve cursor layer data.
-  DisplayPlane *cursor_plane = NULL;
   for (auto j = layer_end - 1; j >= layer_begin; j--) {
     if (j->GetBuffer()->GetUsage() & kLayerCursor) {
       cursor_layer = &(*(j));
-      // Handle Cursor layer.
       if (cursor_layer) {
-        // Handle Cursor layer. If we have dedicated cursor plane, try using it
-        // to composite cursor layer.
-        if (cursor_plane_)
-          cursor_plane = cursor_plane_.get();
-        if (cursor_plane) {
-          commit_planes.emplace_back(OverlayPlane(cursor_plane, cursor_layer));
-          // Lets ensure we fall back to GPU composition in case
-          // cursor layer cannot be scanned out directly.
-          if (FallbacktoGPU(cursor_plane, cursor_layer, commit_planes)) {
-            cursor_plane = NULL;
-            commit_planes.pop_back();
-          } else
-            layer_end = j;
-        }
+        layer_end = j;
+        break;
       }
-      break;
     }
   }
 
@@ -158,9 +143,27 @@ bool DisplayPlaneManager::ValidateLayers(std::vector<OverlayLayer> &layers,
       render_layers = true;
   }
 
-  if (cursor_plane) {
-    composition.emplace_back(cursor_plane, cursor_layer,
-                             cursor_layer->GetZorder());
+  // Handle Cursor layer.
+  DisplayPlane *cursor_plane = NULL;
+  if (cursor_layer) {
+    // Handle Cursor layer. If we have dedicated cursor plane, try using it
+    // to composite cursor layer.
+    if (cursor_plane_)
+      cursor_plane = cursor_plane_.get();
+    if (cursor_plane) {
+      commit_planes.emplace_back(OverlayPlane(cursor_plane, cursor_layer));
+      composition.emplace_back(cursor_plane, cursor_layer,
+                               cursor_layer->GetZorder());
+      // Lets ensure we fall back to GPU composition in case
+      // cursor layer cannot be scanned out directly.
+      if (FallbacktoGPU(cursor_plane, cursor_layer, commit_planes)) {
+        render_layers = true;
+        DisplayPlaneState &last_plane = composition.back();
+        SetOffScreenCursorPlaneTarget(last_plane,
+                                      cursor_layer->GetDisplayFrameWidth(),
+                                      cursor_layer->GetDisplayFrameHeight());
+      }
+    }
   }
 
   if (render_layers) {
@@ -215,6 +218,7 @@ void DisplayPlaneManager::SetOffScreenCursorPlaneTarget(
   surface->SetPlaneTarget(plane, gpu_fd_);
   plane.SetOffScreenTarget(surface);
   plane.ForceGPURendering();
+  plane.SetCursorPlane();
 }
 
 void DisplayPlaneManager::ReleaseAllOffScreenTargets() {

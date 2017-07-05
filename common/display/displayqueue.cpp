@@ -161,7 +161,14 @@ void DisplayQueue::GetCachedLayers(const std::vector<OverlayLayer>& layers,
               plane.GetOffScreenTarget()->GetLastSurfaceDamage());
           last_plane.DisableClearSurface();
         } else {
-          display_plane_manager_->SetOffScreenPlaneTarget(last_plane);
+          if (plane.IsCursorPlane()) {
+            const OverlayLayer* layer = plane.GetOverlayLayer();
+            display_plane_manager_->SetOffScreenCursorPlaneTarget(
+                last_plane, layer->GetDisplayFrameWidth(),
+                layer->GetDisplayFrameHeight());
+          } else {
+            display_plane_manager_->SetOffScreenPlaneTarget(last_plane);
+          }
         }
 
         last_plane.ForceGPURendering();
